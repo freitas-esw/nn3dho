@@ -97,45 +97,53 @@ program freennp
       acc_g = acc_g + g / reports
       ene_g = ene_g + eln * g / reports
 
-      do j = 1, size(fim,1)  
-        do k = 1, size(fim,2)      
-          fim(j,k) = fim(j,k) + g(j)*g(k) / reports
-        enddo           
-      enddo
+      if ( optimizer == 'kfac' ) then
+        do j = 1, size(fim,1)  
+          do k = 1, size(fim,2)      
+            fim(j,k) = fim(j,k) + g(j)*g(k) / reports
+          enddo           
+        enddo
+      endif
 
     enddo
 
     eat = eat / reports
     ean = ean / reports
   
-! ----------------- KFAC Optimizer ----------------- !
-    do j = 1, size(fim,1)  
-      do k = 1, size(fim,2)      
-        fim(j,k) = fim(j,k) - acc_g(j)*acc_g(k) 
-      enddo           
-      fim(j,j) = fim(j,j) + lambda
-    enddo
+    if ( optimizer == 'kfac' ) then
+      ! ------------- KFAC Optimizer ------------- !
+      do j = 1, size(fim,1)  
+        do k = 1, size(fim,2)      
+          fim(j,k) = fim(j,k) - acc_g(j)*acc_g(k) 
+        enddo           
+        fim(j,j) = fim(j,j) + lambda
+      enddo
 
-    inv = inverse( fim, size(fim,1) )
-    h = lambda * get_params()
-    h = h + ene_g - ean*acc_g
-    g = maprod( inv, h )
+      inv = inverse( fim, size(fim,1) )
+      h = lambda * get_params()
+      h = h + ene_g - ean*acc_g
+      g = maprod( inv, h )
 
-    g = eta * g   ! / norm2(g)
-! -------------------------------------------------- !
+      g = eta * g
+      ! ------------------------------------------ !
+    elseif ( optimizer == 'adam' ) then
+      ! ------------- ADAM Optimizer ------------- !
+      g = ene_g - ean * acc_g
 
+      vec_m = beta1 * vec_m + ( one - beta1 )*g
+      vec_v = beta2 * vec_v + ( one - beta2 )*( g*g )
 
-! ----------------- ADAM Optimizer ----------------- !
-!    g = ene_g - ean * acc_g
-!
-!    vec_m = beta1 * vec_m + ( one - beta1 )*g
-!    vec_v = beta2 * vec_v + ( one - beta2 )*( g*g )
-!
-!    hat_m = vec_m / ( one - beta1**m )
-!    hat_v = vec_v / ( one - beta2**m )
-!
-!    g = eta * hat_m / ( sqrt( hat_v ) + eps )
-! -------------------------------------------------- !
+      hat_m = vec_m / ( one - beta1**m )
+      hat_v = vec_v / ( one - beta2**m )
+
+      g = eta * hat_m / ( sqrt( hat_v ) + eps )
+      ! ------------------------------------------ !
+    else
+      ! ------------- SGD  Optimizer ------------- !
+      g = ene_g - ean * acc_g
+      g = eta * g / norm2(g)
+      ! ------------------------------------------ !
+    endif
 
     call update_parameter( g )
 

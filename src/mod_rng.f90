@@ -1,6 +1,6 @@
 module mod_rng
 
-   use mod_cte, only: pi, two
+   use mod_cte, only: pi, two, kd
    use mod_ios, only: write_out
 
    implicit none
@@ -30,6 +30,8 @@ module mod_rng
       module procedure randg_scalar, randg_array
       module procedure randg_matrix
    end interface randg
+
+   integer, dimension(4), save :: mm=(/ 502,1521,4071,2107/), ll=(/0,0,0,1/)
 
    contains
 
@@ -188,5 +190,22 @@ module mod_rng
          enddo
 
       end function randg_matrix
+
+      real(kd) function rannyu()
+        real(kd), parameter :: ooto12=1.0_kd/4096.0_kd
+        integer, parameter  :: itwo12=4096
+        integer :: i1, i2, i3, i4
+        i1=ll(1)*mm(4)+ll(2)*mm(3)+ll(3)*mm(2)+ll(4)*mm(1)
+        i2=ll(2)*mm(4)+ll(3)*mm(3)+ll(4)*mm(2)
+        i3=ll(3)*mm(4)+ll(4)*mm(3)
+        i4=ll(4)*mm(4)
+        ll(4)=mod(i4,itwo12)
+        i3=i3+i4/itwo12
+        ll(3)=mod(i3,itwo12)
+        i2=i2+i3/itwo12
+        ll(2)=mod(i2,itwo12)
+        ll(1)=mod(i1+i2/itwo12,itwo12)
+        rannyu=ooto12*(float(ll(1)) + ooto12*(float(ll(2)) + ooto12*(float(ll(3)) + ooto12*(float(ll(4))))))
+      end function rannyu
 
 end module mod_rng

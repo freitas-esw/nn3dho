@@ -8,7 +8,7 @@
  design    = 3, 5, 1,     ! Design of the neural network
  rate      = 0.010,       ! Learning rate coefficient
  lambda    = 0.004,       ! Coefficient of the norm regularization
- optimizer = 'KFAC',      ! Optimizer name to be used
+ optimizer = 'kfac',      ! Optimizer name to be used
  seed      = 2,           ! Random generator seed number
 
 ! DEFAULT INPUT SIMULATION PARAMETERS
@@ -20,7 +20,7 @@
 ! design    = 4, 5, 5, 1,  ! Design of the neural network
 ! rate      = 0.100,       ! Learning rate coefficient
 ! lambda    = 0.100,       ! Coefficient of the norm regularization
-! optimizer = 'ADAM',      ! Optimizer name to be used
+! optimizer = 'adam',      ! Optimizer name to be used
 ! seed      = 2,           ! Random generator seed number
 
 /
