@@ -121,8 +121,6 @@ program freennp
     h = h + ene_g - ean*acc_g
     g = maprod( inv, h )
 
-    call write_out( g, size(g), "teste" )
-
     g = eta * g   ! / norm2(g)
 ! -------------------------------------------------- !
 

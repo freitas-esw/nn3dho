@@ -1,0 +1,24 @@
+
+ NN3DHO - Neural Network 3D Harmonic Oscillator
+
+     NN3DHO is a Fortran code to solve the quantum 3D harmonic oscillator using 
+   neural networks as trial wave function and variational quantum Monte Carlo.
+
+     The neural network implentation is a modified version of:
+
+       @article{10.1145/3323057.3323059,
+         author = {Curcic, Milan},
+         title = {A Parallel Fortran Framework for Neural Networks and Deep Learning},
+         year = {2019},
+         issue_date = {December 2018},
+         publisher = {Association for Computing Machinery},
+         address = {New York, NY, USA},
+         volume = {38},
+         number = {1},
+         issn = {1061-7264},
+         url = {https://doi.org/10.1145/3323057.3323059},
+         doi = {10.1145/3323057.3323059},
+       }
+
+     The random number generator used is from SPRNG library. 
+     More details in http://www.sprng.org/
