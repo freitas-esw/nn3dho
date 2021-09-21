@@ -1,6 +1,6 @@
 module ho3dnn
 
-  use mod_cte
+  use mod_cte, only: kd, zero, half, one, three, four
   use mod_ios
   use mod_rng
   use mod_network
@@ -9,11 +9,13 @@ module ho3dnn
   implicit none
    
   integer :: seed
-  integer :: reports, cycles, batches
+  integer :: reports, cycles, batches, blocks
 
   integer :: design(10)
 
-  real(kd) :: delta, rate, a
+  real(kd) :: lambda, delta, rate, alpha
+
+  character*4 :: optimizer
 
   type(neuralnet) :: ann
 
@@ -21,7 +23,7 @@ module ho3dnn
  
     subroutine read_set
       integer :: i
-      namelist /honn/ delta, reports, cycles, design, seed, batches, rate, a
+      namelist /honn/ batches, blocks, reports, cycles, alpha, design, rate, lambda, optimizer, seed
       open(unit=1,file="3dhonn.in")
       read(1, nml=honn )
       !open(unit=3,file='debug')
@@ -29,7 +31,19 @@ module ho3dnn
       design(1)=3
       ann = neuralnet( design(1:i), 'tanh', seed )
       call ann % layers(i) % set_activation ( 'sigmoid' )
+      call write_out("","output")
+      call write_out("  batches:    ",batches,"output",'1I6')
+      call write_out("  blocks:     ",blocks,"output",'1I6')
+      call write_out("  reports:    ",reports,"output",'1I6')
+      call write_out("  cycles:     ",cycles,"output",'1I6')
+      call write_out("  alpha:      ",alpha,"output",'1f6.3')
+      call write_out("  learn rate: ",rate,"output",'1f6.3')
+      call write_out("  lambda:     ",lambda,"output",'1f6.3')
+      call write_out(" optimizer:    "//optimizer,"output")
+      call write_out("  rng seed:   ",seed,"output",'1I6')
+      call write_out("","output")
       call ann%save("output")
+      call write_out("","output")
     end subroutine
 
     function gs_actual( x ) result( wfn )
@@ -39,16 +53,14 @@ module ho3dnn
 
     function gs_trial( x ) result( wfn )
       real(kd) :: x(3), wfn
-      wfn = one / ( a**2 + norm2(x)**2 )**2
+      wfn = one / ( alpha**2 + norm2(x)**2 )**2
     end function 
     
     function gs_nn( x ) result( wfn )
       real(kd) :: x(3), wfn
       real(kd),allocatable::aux(:)
-!      aux = [one]
       aux = ann % output( x )
-      ! wfn = aux(1) * exp( -norm2(x)**2 )
-      wfn = aux(1) / ( a**2 + norm2(x)**2 )**2
+      wfn = aux(1) / ( alpha**2 + norm2(x)**2 )**2
     end function 
 
     function ene_actual( x ) result( ene )
@@ -59,7 +71,7 @@ module ho3dnn
 
     function ene_trial( x ) result( ene )
       real(kd) :: x(3), ene
-      ene = - half * four * three * ( norm2(x)**2 - a**2 ) / ( a**2 + norm2(x)**2 )**2
+      ene = - half * four * three * ( norm2(x)**2 - alpha**2 ) / ( alpha**2 + norm2(x)**2 )**2
 ! 2*Pi*int_0^infty r^2/(a^2+r^2)^4 dr = Pi^2/(16 a^5)
 ! Pi * int_0^infty r^4/(a^2+r^2)^4 dr = Pi^2/(32 a^3)
 ! -12 * Pi * int_0^infty r^2 *(r^2-a^2)/(a^2+r^2)^6 dr = 3Pi^2/(32a^7)
@@ -74,10 +86,8 @@ module ho3dnn
       call ann % ddnn( d, dd )
       d  = d  /  ann % layers( size(ann%dims) ) % a(1)
       dd = dd / ann % layers( size(ann%dims) ) % a(1)
-      ene = - half * four * three * ( norm2(x)**2 - a**2 ) / ( a**2 + norm2(x)**2 )**2
-      ene = ene - sum( -four * d * x )/( a**2 + norm2(x)**2 )**2
-      ! ene = - half * ( four * norm2(x)**2 - three*two )  ! dd e^(-r**2)
-      ! ene = ene - half * sum( - four * d * x )           ! d e^(-r**2)*d nn
+      ene = - half * four * three * ( norm2(x)**2 - alpha**2 ) / ( alpha**2 + norm2(x)**2 )**2
+      ene = ene - sum( -four * d * x )/( alpha**2 + norm2(x)**2 )
       ene = ene - half * ( dd(1)+dd(2)+dd(3) )
       ene = ene + half * norm2(x)**2 
       ene = ene 
@@ -150,7 +160,7 @@ module ho3dnn
       real(kd)                :: inv(n,n)
 
       real(kd) :: L(n,n), U(n,n), b(n), d(n), x(n)
-      real(kd) :: coeff, copy(n,n)
+      real(kd) :: coeff
       integer  :: i, j, k
 
       ! step 0: initialization for matrices L and U and b
@@ -159,7 +169,6 @@ module ho3dnn
       U=0.0
       b=0.0
 
-copy = a
       ! step 1: forward elimination
       do k=1, n-1
         do i=k+1,n
@@ -217,6 +226,7 @@ copy = a
       real(kd), allocatable :: res(:)
       integer               :: i, j
       allocate( res( size(mat,1) ) )
+      res = zero
       do i = 1, size(mat,1)
         do j = 2, size(array)
           res(i) = res(i) + mat(i,j)*array(j)
@@ -232,26 +242,46 @@ copy = a
       call db_init(db, ann % dims)
       call dw_init(dw, ann % dims)
       n = 1
-call write_out(dpar,size(dpar),"teste") 
-call write_out("","teste") 
-      !if ( norm2(dpar) > one ) dpar = dpar / ( 0.8_kd * norm2(dpar) )
       do i = 2, size( ann % dims )
         do j = 1, ann % dims(i)
-          ! dpar(n) = zero
-          db(i) % array(j) = dpar(n) ! + 0.01_kd * ann % layers(i) % b(j)
+          db(i) % array(j) = dpar(n) 
           n = n + 1
         enddo
       enddo
-      ! if ( norm2(dpar) > one ) dpar = dpar / norm2(dpar)
       do i = 1, size( ann % dims )-1
         do j = 1, ann % dims(i)
           do k = 1, ann % dims(i+1)
-            dw(i) % array(j,k) = dpar(n) ! + 0.01_kd * ann % layers(i) % w(j,k)
+            dw(i) % array(j,k) = dpar(n)
             n = n + 1
           enddo
         enddo
       enddo
       call ann % update ( dw, db, one )  
     end subroutine update_parameter
+
+    function get_params() result ( a )
+      real(kd), allocatable :: a(:)
+      integer               :: i, j, k, n
+      n = 0
+      do i = 2, size( ann % dims )
+        n = n + ann % dims(i) * ( 1 + ann % dims(i-1) )
+      enddo
+      allocate( a(n) )
+      n = 1
+      do i = 2, size( ann % dims )
+        do j = 1, ann % dims(i)
+           a(n) = ann % layers(i) % b(j)
+           n = n + 1
+        enddo   
+      enddo
+      do i = 1, size( ann % dims )-1
+        do j = 1, ann % dims(i)
+          do k = 1, ann % dims(i+1)
+            a(n) = ann % layers(i) % w(j,k)
+            n = n + 1
+          enddo
+        enddo
+      enddo
+    end function get_params
 
 end module 

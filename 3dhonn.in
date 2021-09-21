@@ -1,21 +1,26 @@
 &honn
+ 
+ batches   = 100,         ! Number of batches for optimization
+ blocks    = 1,           ! Number of blocks in one optimization step
+ reports   = 8000,        ! Number of reports of observables by block
+ cycles    = 4,           ! Number of steps between energy computation
+ alpha     = 3.32,        ! Variational parameter
+ design    = 3, 5, 1,     ! Design of the neural network
+ rate      = 0.010,       ! Learning rate coefficient
+ lambda    = 0.004,       ! Coefficient of the norm regularization
+ optimizer = 'KFAC',      ! Optimizer name to be used
+ seed      = 2,           ! Random generator seed number
 
-!delta   = 1.5,      ! Sampling size step
-!rate    = 0.020,    ! Learning rate
-!batches = 400,      ! Number of batches for optimization
-!reports = 32000,    ! Number of reports of observables
-!cycles  = 4,        ! Number of steps between energy computation
-!seed    = 2,        ! Random generator seed number
-!design  = 3, 5, 1,  ! Design of the neural network
-!a       = 1.32,     ! Variational parameter
-
- delta   = 3.0,      ! Sampling size step
- rate    = 0.050,    ! Learning rate
- batches = 400,      ! Number of batches for optimization
- reports = 8000,     ! Number of reports of observables
- cycles  = 4,        ! Number of steps between energy computation
- seed    = 2,        ! Random generator seed number
- design  = 4, 3, 3, 1,  ! Design of the neural network
- a       = 3.32,     ! Variational parameter
+! DEFAULT INPUT SIMULATION PARAMETERS
+! batches   = 200,         ! Number of batches for optimization
+! blocks    = 40,          ! Number of blocks in one optimization step
+! reports   = 200,         ! Number of reports of observables by block
+! cycles    = 4,           ! Number of steps between energy computation
+! alpha     = 3.32,        ! Variational parameter
+! design    = 4, 5, 5, 1,  ! Design of the neural network
+! rate      = 0.100,       ! Learning rate coefficient
+! lambda    = 0.100,       ! Coefficient of the norm regularization
+! optimizer = 'ADAM',      ! Optimizer name to be used
+! seed      = 2,           ! Random generator seed number
 
 /

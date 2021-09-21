@@ -11,11 +11,11 @@ program freennp
   real(kd) :: cpu
   integer  :: wall
 
-  real(kd), allocatable :: g(:), ene_g(:), acc_g(:)
+  real(kd), allocatable :: g(:), h(:), ene_g(:), acc_g(:)
   real(kd), allocatable :: vec_v(:), hat_v(:), vec_m(:), hat_m(:)
   real(kd), allocatable :: fim(:,:), inv(:,:)
   real(kd) :: xa(3), xt(3), xn(3)
-  real(kd) :: ela, elt, eln, eat, ean, p_ean
+  real(kd) :: ela, elt, eln, eat, ean
   integer  :: acc_a, acc_t, acc_n
   integer  :: i, j, k, m
 
@@ -31,7 +31,7 @@ program freennp
   xn = randu( 1, 3 )
 
   i = size( gradient_nn(xa) )
-  allocate( g(i), ene_g(i), acc_g(i) )
+  allocate( g(i), h(i), ene_g(i), acc_g(i) )
   allocate( vec_v(i), vec_m(i) )
   allocate( hat_v(i), hat_m(i) )
   allocate( fim(i,i), inv(i,i) )
@@ -88,7 +88,7 @@ program freennp
       if ( i == reports ) then 
         write(2,fmt='(1I8)',advance='no') m ! i*cycles
         write(2,fmt='(2f10.4)',advance='no') ela, real(acc_a,kd)/(i*cycles)
-        write(2,fmt='(3f10.4)',advance='no') elt, eat/i,  real(acc_t,kd)/(i*cycles)
+        write(2,fmt='(3f10.4)',advance='no') elt, eat/i, real(acc_t,kd)/(i*cycles)
         write(2,fmt='(3f11.4)') eln, ean/i, real(acc_n,kd)/(i*cycles)
       endif      
 
@@ -96,39 +96,50 @@ program freennp
 
       acc_g = acc_g + g / reports
       ene_g = ene_g + eln * g / reports
-!      do j = 1, size(fim,1)  
-!        do k = 1, size(fim,2)      
-!          fim(j,k) = fim(j,k) + g(j)*g(k) / reports
-!        enddo           
-!      enddo
+
+      do j = 1, size(fim,1)  
+        do k = 1, size(fim,2)      
+          fim(j,k) = fim(j,k) + g(j)*g(k) / reports
+        enddo           
+      enddo
 
     enddo
-
-!    do j = 1, size(fim,1)  
-!      do k = 1, size(fim,2)      
-!        fim(j,k) = fim(j,k) - acc_g(j)*acc_g(k) 
-!      enddo           
-!    enddo
 
     eat = eat / reports
     ean = ean / reports
   
-!    inv = inverse( fim, size(fim,1) )
-!    g = maprod( inv, ene_g - ean*acc_g )
+! ----------------- KFAC Optimizer ----------------- !
+    do j = 1, size(fim,1)  
+      do k = 1, size(fim,2)      
+        fim(j,k) = fim(j,k) - acc_g(j)*acc_g(k) 
+      enddo           
+      fim(j,j) = fim(j,j) + lambda
+    enddo
 
-    g = ene_g - ean * acc_g
+    inv = inverse( fim, size(fim,1) )
+    h = lambda * get_params()
+    h = h + ene_g - ean*acc_g
+    g = maprod( inv, h )
 
-    vec_m = beta1 * vec_m + ( one - beta1 )*g
-    vec_v = beta2 * vec_v + ( one - beta2 )*( g*g )
+    call write_out( g, size(g), "teste" )
 
-    hat_m = vec_m / ( one - beta1**m )
-    hat_v = vec_v / ( one - beta2**m )
+    g = eta * g   ! / norm2(g)
+! -------------------------------------------------- !
 
-    g = eta * hat_m / ( sqrt( hat_v ) + eps )
+
+! ----------------- ADAM Optimizer ----------------- !
+!    g = ene_g - ean * acc_g
+!
+!    vec_m = beta1 * vec_m + ( one - beta1 )*g
+!    vec_v = beta2 * vec_v + ( one - beta2 )*( g*g )
+!
+!    hat_m = vec_m / ( one - beta1**m )
+!    hat_v = vec_v / ( one - beta2**m )
+!
+!    g = eta * hat_m / ( sqrt( hat_v ) + eps )
+! -------------------------------------------------- !
 
     call update_parameter( g )
-
-!    if ( mod(m,2) == 0 ) rate = 0.99*rate 
 
   enddo
 
