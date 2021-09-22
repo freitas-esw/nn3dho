@@ -4,7 +4,12 @@
    NN3DHO is a Fortran code to solve the quantum 3D harmonic oscillator using 
    neural networks as trial wave function and variational quantum Monte Carlo.
 
-     The neural network implentation is a modified version of:
+   The Trial neural network wavefunction is written as:
+     \Psi ( \vec r ) = \Phi_{NN} ( \vec R ) / ( alpha**2 + r**2 )**2 
+
+      where \Phi_{NN} is the neural network output.
+
+   The neural network implentation is a modified version of:
 
        @article{10.1145/3323057.3323059,
          author = {Curcic, Milan},
@@ -25,3 +30,27 @@
 
    Requirements
      - SPRNG, The Scalable Parallel Random Number Generators Library
+
+   Compiling the code:
+     ---
+     Set the correct path to the SPRNG library using the variable SPRDIR in
+     the makefile.
+     ---
+     make
+
+   Running the code:
+
+     Consider PATH_NN3DHO to be the path to the main folder of the program.
+     After compiling successfully, there will a folder called "bin" on the
+     PATH_NN3DHO. Inside "bin", there will be the executable 'nn3dho.run'.
+
+     To run the code, you just need to execute nn3dho.run
+      >> PATH_NN3DHO/bin/nn3dho.run
+     If you are inside the folder examples, for instance, you can run the command: 
+      >> ../bin/nn3dho.run
+ 
+     The program reads the file '3dhonn.in' inside the folder where the program was 
+     run. This file must have the same structure as the file inside the folder 
+     examples. If there is not a file called '3dhonn.in' on the folder, default 
+     parameters will be used.
+
