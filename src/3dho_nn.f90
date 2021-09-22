@@ -8,29 +8,35 @@ module ho3dnn
 
   implicit none
    
-  integer :: seed
-  integer :: reports, cycles, batches, blocks
+  integer :: seed=1, unit_out
+  integer :: reports=200, cycles=4, batches=200, blocks=40
 
-  integer :: design(10)
+  integer :: design(10)=[4,5,5,1,0,0,0,0,0,0]
 
-  real(kd) :: lambda, delta, rate, alpha
+  real(kd) :: lambda=0.001_kd, rate=0.04_kd, alpha=3.32_kd, delta
 
-  character*4 :: optimizer
+  character*4 :: optimizer='adam'
 
   type(neuralnet) :: ann
 
+  
   contains
  
     subroutine read_set
-      integer :: i
+      integer :: i, err
+      logical :: isThere
       namelist /honn/ batches, blocks, reports, cycles, alpha, design, rate, lambda, optimizer, seed
-      open(unit=1,file="3dhonn.in")
-      read(1, nml=honn )
+      inquire(file="3dhonn.in",exist=isThere)
+      if ( isThere ) then
+        open(unit=1,file="3dhonn.in")
+        read(1, nml=honn )
+      endif
       !open(unit=3,file='debug')
       i = design(1)
       design(1)=3
       ann = neuralnet( design(1:i), 'tanh', seed )
       call ann % layers(i) % set_activation ( 'sigmoid' )
+      call check_open( "output", unit_out, err )
       call write_out("","output")
       call write_out("  batches:    ",batches,"output",'1I6')
       call write_out("  blocks:     ",blocks,"output",'1I6')
@@ -41,8 +47,6 @@ module ho3dnn
       call write_out("  lambda:     ",lambda,"output",'1f6.3')
       call write_out(" optimizer:    "//optimizer,"output")
       call write_out("  rng seed:   ",seed,"output",'1I6')
-      call write_out("","output")
-      call ann%save("output")
       call write_out("","output")
     end subroutine
 

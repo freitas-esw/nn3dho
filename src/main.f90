@@ -1,4 +1,4 @@
-program freennp
+program main
 
   use mod_cte
   use mod_rng
@@ -86,10 +86,10 @@ program freennp
       eln = ene_nn(xn)
       ean = ean + eln
       if ( i == reports ) then 
-        write(2,fmt='(1I8)',advance='no') m ! i*cycles
-        write(2,fmt='(2f10.4)',advance='no') ela, real(acc_a,kd)/(i*cycles)
-        write(2,fmt='(3f10.4)',advance='no') elt, eat/i, real(acc_t,kd)/(i*cycles)
-        write(2,fmt='(3f11.4)') eln, ean/i, real(acc_n,kd)/(i*cycles)
+        write(unit_out,fmt='(1I8)',advance='no') m ! i*cycles
+        write(unit_out,fmt='(2f10.4)',advance='no') ela, real(acc_a,kd)/(i*cycles)
+        write(unit_out,fmt='(3f10.4)',advance='no') elt, eat/i, real(acc_t,kd)/(i*cycles)
+        write(unit_out,fmt='(3f11.4)') eln, ean/i, real(acc_n,kd)/(i*cycles)
       endif      
 
       g = gradient_nn ( xn )
@@ -149,6 +149,7 @@ program freennp
 
   enddo
 
+  call write_out( "", "output" )
   call ann % save( 'output' )
   call finalize_rng()
   call end_tracking_time( cpu, wall, 'output' )
