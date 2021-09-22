@@ -1,26 +1,14 @@
 &honn
  
  batches   = 100,         ! Number of batches for optimization
- blocks    = 1,           ! Number of blocks in one optimization step
+ blocks    = 40,          ! Number of blocks in one optimization step
  reports   = 8000,        ! Number of reports of observables by block
  cycles    = 4,           ! Number of steps between energy computation
  alpha     = 3.32,        ! Variational parameter
  design    = 3, 5, 1,     ! Design of the neural network
- rate      = 0.010,       ! Learning rate coefficient
+ rate      = 0.040,       ! Learning rate coefficient
  lambda    = 0.001,       ! Coefficient of the norm regularization
  optimizer = 'kfac',      ! Optimizer name to be used
  seed      = 2,           ! Random generator seed number
-
-! DEFAULT INPUT SIMULATION PARAMETERS
-! batches   = 200,         ! Number of batches for optimization
-! blocks    = 40,          ! Number of blocks in one optimization step
-! reports   = 200,         ! Number of reports of observables by block
-! cycles    = 4,           ! Number of steps between energy computation
-! alpha     = 3.32,        ! Variational parameter
-! design    = 4, 5, 5, 1,  ! Design of the neural network
-! rate      = 0.040,       ! Learning rate coefficient
-! lambda    = 0.001,       ! Coefficient of the norm regularization
-! optimizer = 'adam',      ! Optimizer name to be used
-! seed      = 1,           ! Random generator seed number
 
 /

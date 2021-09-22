@@ -30,6 +30,15 @@ module ho3dnn
       if ( isThere ) then
         open(unit=1,file="3dhonn.in")
         read(1, nml=honn )
+        if ( blocks .lt. 2 ) then
+           call write_out( "Error: blocks must be at least 2", "output" )
+           call write_out( "The program is going to stop", "output" )
+           stop
+        elseif ( mod(reports,blocks) .ne. 0 ) then
+           call write_out( "Error: reports must be multiple of blocks", "output" )
+           call write_out( "The program is going to stop", "output" )
+           stop
+        endif
       endif
       !open(unit=3,file='debug')
       i = design(1)
@@ -46,8 +55,10 @@ module ho3dnn
       call write_out("  learn rate: ",rate,"output",'1f6.3')
       call write_out("  lambda:     ",lambda,"output",'1f6.3')
       call write_out(" optimizer:    "//optimizer,"output")
-      call write_out("  rng seed:   ",seed,"output",'1I6')
+      call write_out("  rng stream id: ",seed,"output",'1I3')
       call write_out("","output")
+      call write_out("   step    Ene.GS   Ene.Trial  err.ET    &
+              &acc.T.     Ene.NN     err.ENN    acc.NN ","output")
     end subroutine
 
     function gs_actual( x ) result( wfn )

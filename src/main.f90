@@ -15,9 +15,12 @@ program main
   real(kd), allocatable :: vec_v(:), hat_v(:), vec_m(:), hat_m(:)
   real(kd), allocatable :: fim(:,:), inv(:,:)
   real(kd) :: xa(3), xt(3), xn(3)
-  real(kd) :: ela, elt, eln, eat, ean
+  real(kd) :: ela, elt, eln ! Local energy for the actual, trial and Neural Network wavefunction
+  real(kd) :: eat, ean      ! Accumulated energy for the trial and Neural Network wavefunction
+  real(kd) :: ebt, ebn      ! Accumulated energy by block for the trial and NN wavefunction
+  real(kd) :: ets, ens      ! Accumalated mean squared energy for trial and NN wavefunction 
   integer  :: acc_a, acc_t, acc_n
-  integer  :: i, j, k, m
+  integer  :: i, j, k, m, n
 
   real(kd) :: beta1 = 0.9_kd, beta2 = 0.999_kd
   real(kd) :: eta = 0.001_kd, eps = one/10**8
@@ -49,7 +52,9 @@ program main
     acc_g = zero
     ene_g = zero
 
-    do 
+    ! Find a value for the variable delta such that the acceptation of trial moves
+    ! gives something around 46% for the Metropolis algorithm
+    do while ( True )
       acc_n = 0
       do i = 1, 1000
         call trial_move( xn, gs_nn, acc_n )  
@@ -59,6 +64,7 @@ program main
       delta = delta - log(0.46*1000/acc_n)
     enddo
 
+    ! Equilibration steps
     do i = 1, reports/2
       do j = 1, cycles
         call trial_move( xa, gs_actual, acc_a )
@@ -67,48 +73,69 @@ program main
       enddo
     enddo
 
+    ! Reset average values and acceptation
     acc_a = 0
     acc_t = 0
     acc_n = 0
 
     eat = zero
     ean = zero
+    ets = zero
+    ens = zero
 
-    do i = 1, reports
-      do j = 1, cycles
-        call trial_move( xa, gs_actual, acc_a )
-        call trial_move( xt, gs_trial,  acc_t )
-        call trial_move( xn, gs_nn,     acc_n )
-      enddo
-      ela = ene_actual(xa)
-      elt = ene_trial(xt)
-      eat = eat + elt 
-      eln = ene_nn(xn)
-      ean = ean + eln
-      if ( i == reports ) then 
-        write(unit_out,fmt='(1I8)',advance='no') m ! i*cycles
-        write(unit_out,fmt='(2f10.4)',advance='no') ela, real(acc_a,kd)/(i*cycles)
-        write(unit_out,fmt='(3f10.4)',advance='no') elt, eat/i, real(acc_t,kd)/(i*cycles)
-        write(unit_out,fmt='(3f11.4)') eln, ean/i, real(acc_n,kd)/(i*cycles)
-      endif      
+    ! Accumulation of local observables
+    do i = 1, blocks
 
-      g = gradient_nn ( xn )
+      ebt = zero
+      ebn = zero
 
-      acc_g = acc_g + g / reports
-      ene_g = ene_g + eln * g / reports
+      do n = 1, reports/blocks  
 
-      if ( optimizer == 'kfac' ) then
-        do j = 1, size(fim,1)  
-          do k = 1, size(fim,2)      
-            fim(j,k) = fim(j,k) + g(j)*g(k) / reports
-          enddo           
+        do j = 1, cycles
+          call trial_move( xa, gs_actual, acc_a )
+          call trial_move( xt, gs_trial,  acc_t )
+          call trial_move( xn, gs_nn,     acc_n )
         enddo
-      endif
+
+        ela = ene_actual(xa)
+        elt = ene_trial(xt)
+        eat = eat + elt
+        ebt = ebt + elt
+        eln = ene_nn(xn)
+        ean = ean + eln
+        ebn = ebn + eln
+
+        g = gradient_nn ( xn )
+
+        acc_g = acc_g + g / reports
+        ene_g = ene_g + eln * g / reports
+
+        if ( optimizer == 'kfac' ) then
+          do j = 1, size(fim,1)
+            do k = 1, size(fim,2)
+              fim(j,k) = fim(j,k) + g(j)*g(k) / reports
+            enddo
+          enddo
+        endif
+
+      enddo
+
+      ets = ets + ( ebt * blocks / reports )**2
+      ens = ens + ( ebn * blocks / reports )**2
 
     enddo
 
+    ebt = ( eat / reports )**2 * blocks / (blocks-1)
+    ebn = ( ean / reports )**2 * blocks / (blocks-1)
+    ets = ets / ( blocks-1 )
+    ens = ens / ( blocks-1 )
+
     eat = eat / reports
     ean = ean / reports
+
+    write(unit_out,fmt='(1I8,1f10.4)',advance='no') m, ela
+    write(unit_out,fmt='(3f10.4)',advance='no') eat,sqrt(ets-ebt), real(acc_t,kd)/(reports*cycles)
+    write(unit_out,fmt='(3f11.4)') ean,sqrt(ens-ebn), real(acc_n,kd)/(reports*cycles)
   
     if ( optimizer == 'kfac' ) then
       ! ------------- KFAC Optimizer ------------- !
